@@ -6,28 +6,35 @@ import math
 BS = [125,50]
 rede = []
 area = 100
-tamSector = [25,50]
+tamSector = [50,50]
+tamPacote = 2000
 
 # Leitura do arquivo
 arq = open('nodes.txt', 'r')
 for k in range(100):
     linha = arq.readline()
     linha = linha.split('/', 3)
-    # id / x / y / Setor CH / SetorRede / No receptor / Distancia até receptor / Já foi CH? / É CH
-    node = [int(linha[0]), float(linha[1]), float(linha[2]), 0, 0, 0, 0.0, 0, 0]
+    # id / x / y / Setor CH / SetorRede / No receptor / Distancia até receptor / Já foi CH? / É CH / bateria
+    node = [int(linha[0]), float(linha[1]), float(linha[2]), 0, 0, 0, 0.0, 0, 0, 0.5]
     rede.append(node)
 
 
+Round = 0
 
+while(len(rede) != 0):
 
-for round in range(10):
+    Round += 1
+    energiaTotal = 0
+    for node in rede:
+        energiaTotal += node[9]
+    print('Round: ' + str(Round) + ' Total nodes: ' + str(len(rede)) + ' Energia total:' + str(energiaTotal))
+
     # Criação dos setores
     totalX = int(area/tamSector[0])
     contX = 0
     totalY = int(area/tamSector[1])
     contY = 0
     limites = []
-
     count = 0
     for i in range(totalY):
         for j in range(totalX):
@@ -52,8 +59,6 @@ for round in range(10):
     for node in rede:
         totalNodesSector[node[4]-1] += 1
         nodesSectors[node[4]-1].append(node)
-    print(totalNodesSector)
-    print()
 
     # Definição do Multi-hop em todos os setores
     for setor in nodesSectors:
@@ -132,27 +137,38 @@ for round in range(10):
             tamModelosCH[ pos ] = float('inf')
             ordemMenorFormacoes.append( pos )
 
-        print(ordemMenorFormacoes)
-
         # Escolher a melhor formação possível
+        # Escolher a melhor formação possível e atualiza o vetor rede
         for formacao in ordemMenorFormacoes:
             if(modelosCH[ formacao ][0][7] == 0):
                 for node in rede:
                     for nodeSubstituto in modelosCH[ formacao ][1]:
                         if(nodeSubstituto[0] == node[0]):
-                            rede[ node[0] - 1 ] = nodeSubstituto
+                            node[5] = nodeSubstituto[5]
+                            node[6] = nodeSubstituto[6]
+                            node[7] = nodeSubstituto[7]
+                            node[8] = nodeSubstituto[8]
                     if(modelosCH[ formacao ][0][0] == node[0]):
-                        rede[ modelosCH[ formacao ][0][0] - 1 ][7] = 1
-                        rede[ modelosCH[ formacao ][0][0] - 1 ][8] = 1
+                        node[7] = 1
+                        node[8] = 1
+                        node[6] = math.sqrt((node[1]-BS[0])**2 + (node[2]-BS[1])**2)
+                        totalContEnc = 0
+                        for nodeSearch in rede:
+                            if(nodeSearch[5] == node[0]):
+                                totalContEnc += 1
+                        node[9] -= 0.000000005*tamPacote*(totalContEnc + 1)
                 break
 
+    # Transmissão dos pacotes
+    for node in rede:
+        node[9] -= (0.00000005*tamPacote + 0.0000000001*tamPacote*(node[6]*node[6]))
+        if(node[5] != 0):
+            for nodeSearch in rede:
+                if (nodeSearch[0] == node[5]):
+                    nodeSearch[9] -= (0.00000005*tamPacote)
 
 
-
-
-
-
-
+    '''
     # Plot do Gráfico
 
     for node in rede:
@@ -204,12 +220,23 @@ for round in range(10):
     plt.savefig('nodes.png')
     plt.show()
     plt.clf()
+    '''
 
     # Reset nodes
-    count = 0
     for node in rede:
         node[8] = 0
-        count += node[7]
-    if(count == len(rede)):
-        for node in rede:
-            node[7] = 0
+        node[5] = 0
+        node[6] = 0.0
+        if(node[9] <= 0.0):
+            rede.remove(node)
+
+
+    for setor in nodesSectors:
+        count = 0
+        for node in setor:
+            count += node[7]
+        if(count == len(setor)):
+            for node in setor:
+                node[7] = 0
+
+print(Round)
