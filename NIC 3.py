@@ -20,7 +20,7 @@ for k in range(100):
 
 
 
-for round in range(10):
+for round in range(20):
     # Criação dos setores
     totalX = int(area/tamSector[0])
     contX = 0
@@ -132,18 +132,20 @@ for round in range(10):
             tamModelosCH[ pos ] = float('inf')
             ordemMenorFormacoes.append( pos )
 
-        print(ordemMenorFormacoes)
-
-        # Escolher a melhor formação possível
+        # Escolher a melhor formação possível e atualiza o vetor rede
         for formacao in ordemMenorFormacoes:
             if(modelosCH[ formacao ][0][7] == 0):
                 for node in rede:
                     for nodeSubstituto in modelosCH[ formacao ][1]:
                         if(nodeSubstituto[0] == node[0]):
-                            rede[ node[0] - 1 ] = nodeSubstituto
+                            node[5] = nodeSubstituto[5]
+                            node[6] = nodeSubstituto[6]
+                            node[7] = nodeSubstituto[7]
+                            node[8] = nodeSubstituto[8]
                     if(modelosCH[ formacao ][0][0] == node[0]):
-                        rede[ modelosCH[ formacao ][0][0] - 1 ][7] = 1
-                        rede[ modelosCH[ formacao ][0][0] - 1 ][8] = 1
+                        node[7] = 1
+                        node[8] = 1
+                        node[6] = math.sqrt((node[1]-BS[0])**2 + (node[2]-BS[1])**2)
                 break
 
 
@@ -206,10 +208,15 @@ for round in range(10):
     plt.clf()
 
     # Reset nodes
-    count = 0
     for node in rede:
         node[8] = 0
-        count += node[7]
-    if(count == len(rede)):
-        for node in rede:
-            node[7] = 0
+        node[5] = 0
+        node[6] = 0.0
+
+    for setor in nodesSectors:
+        count = 0
+        for node in setor:
+            count += node[7]
+        if(count == len(setor)):
+            for node in setor:
+                node[7] = 0
