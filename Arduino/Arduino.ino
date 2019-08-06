@@ -1,8 +1,6 @@
 #include <math.h>
 
 void setup() {
-  // put your setup code here, to run once:
-  pinMode(D1, OUTPUT);
   Serial.begin(112000);
 }
 
@@ -13,96 +11,111 @@ void loop() {
 
 
   // Definição do Multi-hop em todos os setores
-  float nodesSetor[20][4] = {{ 1, 8.85, 65.18, 0.0},
-                            {12, 7.15, 51.49, 0.0},
-                            {22, 23.66, 64.9, 0.0},
-                            {25, 15.46, 61.52, 0.0},
-                            {31, 12.3, 86.55, 0.0},
-                            {33, 14.72, 97.49, 0.0},
-                            {50, 1.21, 70.18, 0.0},
-                            {52, 5.2, 80.98, 0.0},
-                            {65, 23.53, 61.98, 0.0},
-                            {67, 19.01, 52.68, 0.0},
-                            {71, 3.5, 99.35, 0.0},
-                            {74, 3.86, 70.74, 0.0},
-                            {77, 11.23, 53.57, 0.0},
-                            {86, 16.18, 76.16, 0.0},
-                            {89, 11.01, 71.13, 0.0},
-                            {95, 18.95, 83.01, 0.0},
-                            {97, 5.0, 52.75, 0.0},
-                            {99, 16.61, 83.47, 0.0},
-                            {101, 26.0, 72.0, 0.0},
-                            {102, 27.0, 65.0, 0.0}};
-  // Modelo do node: (0)ID / (1) X / (2) Y / (3) Distância
+  float nodesSetor[20][6] = {{ 1, 8.85, 65.18, 0.0, 0, 0},
+                            {12, 7.15, 51.49, 0.0, 0, 0},
+                            {22, 23.66, 64.9, 0.0, 0, 0},
+                            {25, 15.46, 61.52, 0.0, 0, 0},
+                            {31, 12.3, 86.55, 0.0, 0, 0},
+                            {33, 14.72, 97.49, 0.0, 0, 0},
+                            {50, 1.21, 70.18, 0.0, 0, 0},
+                            {52, 5.2, 80.98, 0.0, 0, 0},
+                            {65, 23.53, 61.98, 0.0, 0, 0},
+                            {67, 19.01, 52.68, 0.0, 0, 0},
+                            {71, 3.5, 99.35, 0.0, 0, 0},
+                            {74, 3.86, 70.74, 0.0, 0, 0},
+                            {77, 11.23, 53.57, 0.0, 0, 0},
+                            {86, 16.18, 76.16, 0.0, 0, 0},
+                            {89, 11.01, 71.13, 0.0, 0, 0},
+                            {95, 18.95, 83.01, 0.0, 0, 0},
+                            {97, 5.0, 52.75, 0.0, 0, 0},
+                            {99, 16.61, 83.47, 0.0, 0, 0},
+                            {101, 26.0, 72.0, 0.0, 0, 0},
+                            {102, 27.0, 65.0, 0.0, 0, 0}};
+  // Modelo do node: (0)ID / (1) X / (2) Y / (3) Distância / (4) Setor intra-cluster / (5) Já foi CH
   
   float modelosCH[20][20][4];
   float tamModelosCH[20];
   
   for(int k = 0; k < 20; k++) {
-    float CH[4] = {nodesSetor[k][0], nodesSetor[k][1], nodesSetor[k][2], nodesSetor[k][3]};
+    float CH[6] = {nodesSetor[k][0], nodesSetor[k][1], nodesSetor[k][2], nodesSetor[k][3], nodesSetor[k][4]};
     float modelo[20][4];
-    
-    // Calcula as distâncias entre o CH e os outros
-    float distanciasCH[20];
-    for(int k = 0; k < 20; k++) {
-      float distancia = sqrt( pow(CH[1]-nodesSetor[k][1], 2) + pow(CH[2]-nodesSetor[k][2], 2) );
-      nodesSetor[k][3] = distancia;
-      distanciasCH[k] = distancia;
-    }
-    /*
-    for node in formacaoCluster:
-        distancia = math.sqrt((CH[1]-node[1])**2 + (CH[2]-node[2])**2)
-        node[6] = distancia
-        distanciasSetor.append( distancia )
 
-    // Definição dos setores dentro do CH
-    for node in formacaoCluster:
-        #Define o CH para envio
-        node[5] = CH[0]
-        # Calculo entre o menor e o maior
-
-        maior = lista[0]
-        for k in lista:
-            if(maior < k):
-                maior = k
-        return maior
+    // Não calcula uma alternativa onde um node já foi CH
+    if(CH[6] != 1) {
+      // Calcula as distâncias entre o CH e os outros
+      float distanciasCH[20];
+      for(int k = 0; k < 20; k++) {
+        float distancia = sqrt( pow(CH[1]-nodesSetor[k][1], 2) + pow(CH[2]-nodesSetor[k][2], 2) );
+        nodesSetor[k][3] = distancia;
+        distanciasCH[k] = distancia;
+  
+        nodesSetor[k][3] = CH[0];
+      }
       
-        menor = lista[0]
-        for k in lista:
-            if(k < menor):
-                menor = k
-        return menor
-        
-        menor = max(distanciasSetor)
-        maior = min(distanciasSetor)
-
-        valor = (maior - menor) / 8
-
-        if(node[6] <= menor + 1*valor):
-            node[3] = 1
-        elif(node[6] <= menor + 2*valor):
-            node[3] = 2
-        elif(node[6] <= menor + 3*valor):
-            node[3] = 3
-        elif(node[6] <= menor + 4*valor):
-            node[3] = 4
-        elif(node[6] <= menor + 5*valor):
-            node[3] = 5
-        elif(node[6] <= menor + 6*valor):
-            node[3] = 6
-        elif(node[6] <= menor + 7*valor):
-            node[3] = 7
-        else:
-            node[3] = 8
-    */
+      // Definição dos setores dentro do CH
+      float maior = distanciasCH[0];
+      for(int k = 0; k < 20; k++) {
+          if(maior < distanciasCH[k])
+              maior = distanciasCH[k];
+      }
     
-    // Soma o total das distâncias
-    int total = 0;
-    for(int k = 0; k < 20; k++) {
-      total += modelo[k][3];
+      float menor = distanciasCH[0];
+      for(int k = 0; k < 20; k++) {
+          if(distanciasCH[k] < menor)
+              menor = distanciasCH[k];
+      }
+  
+      float valor = (maior - menor) / 8;
+      
+      for(int k = 0; k < 20; k++) {
+          if(nodesSetor[k][3] <= menor + 1*valor)
+              nodesSetor[k][4] = 1;
+          else if(nodesSetor[k][3] <= menor + 2*valor)
+              nodesSetor[k][4] = 2;
+          else if(nodesSetor[k][3] <= menor + 3*valor)
+              nodesSetor[k][4] = 3;
+          else if(nodesSetor[k][3] <= menor + 4*valor)
+              nodesSetor[k][4] = 4;
+          else if(nodesSetor[k][3] <= menor + 5*valor)
+              nodesSetor[k][4] = 5;
+          else if(nodesSetor[k][3] <= menor + 6*valor)
+              nodesSetor[k][4] = 6;
+          else if(nodesSetor[k][3] <= menor + 7*valor)
+              nodesSetor[k][4] = 7;
+          else
+              nodesSetor[k][4] = 8;
+      }
+  
+      // Escolhe um novo destino (multi-hop intra-cluster)
+      for(int k = 0; k < 20; k++) {
+          float menor = nodesSetor[k][4];
+  
+          for(int z = 0; z < 20; z++)
+              if(nodesSetor[z][0] != nodesSetor[k][0]) {
+                  float dist = sqrt( pow(nodesSetor[k][1]-nodesSetor[z][1], 2) + pow(nodesSetor[k][2]-nodesSetor[z][2], 2) );
+                  if(dist < menor && nodesSetor[z][4] < nodesSetor[k][4])
+                      menor = dist;
+              }
+                      
+          nodesSetor[k][4] = menor;
+      }
+      
+      // Soma o total das distâncias
+      float total = 0;
+      for(int k = 0; k < 20; k++) {
+        total += modelo[k][3];
+      }
+      tamModelosCH[k] = total;
     }
-    tamModelosCH[k] = total;
-    
+  }
+
+  // Ordena em um vetor as melhores formações (menores distancias no total)
+  for(int k = 0; k < 20; k++) {
+    float menor = tamModelosCH[k];
+    for(int k = 0; k < 20; k++) {
+        if(tamModelosCH[k] < menor)
+            menor = tamModelosCH[k];
+    }
   }
 
 
@@ -118,66 +131,8 @@ void loop() {
       # Análise de todos os nós (teste: somente para um setor)
       modelosCH = []
       tamModelosCH = []
-      
-      # Cada iteração é a escolha de um dos nodes do setor para ser o CH
-      for CH in setor:
-          # Cria uma cópia do objeto lista
-          formacaoCluster = []
-          for node in setor:
-              formacaoCluster.append(node[:])
 
-          # Calcula as distâncias entre o CH e os outros
-          distanciasSetor = []
-          for node in formacaoCluster:
-              distancia = math.sqrt((CH[1]-node[1])**2 + (CH[2]-node[2])**2)
-              node[6] = distancia
-              distanciasSetor.append( distancia )
-
-          # Definição dos setores dentro do CH
-          for node in formacaoCluster:
-              #Define o CH para envio
-              node[5] = CH[0]
-              # Calculo entre o menor e o maior
-              menor = max(distanciasSetor)
-              maior = min(distanciasSetor)
-
-              valor = (maior - menor) / 8
-
-              if(node[6] <= menor + 1*valor):
-                  node[3] = 1
-              elif(node[6] <= menor + 2*valor):
-                  node[3] = 2
-              elif(node[6] <= menor + 3*valor):
-                  node[3] = 3
-              elif(node[6] <= menor + 4*valor):
-                  node[3] = 4
-              elif(node[6] <= menor + 5*valor):
-                  node[3] = 5
-              elif(node[6] <= menor + 6*valor):
-                  node[3] = 6
-              elif(node[6] <= menor + 7*valor):
-                  node[3] = 7
-              else:
-                  node[3] = 8
-
-          # Escolha do destino
-          for node in formacaoCluster:
-              id = CH[0]
-              menor = node[6]
-
-              for nodeSearch in formacaoCluster:
-                  if(nodeSearch[0] != node[0]):
-                      dist = math.sqrt((node[1]-nodeSearch[1])**2 + (node[2]-nodeSearch[2])**2)
-                      if(dist < menor and nodeSearch[3] < node[3]):
-                          id = nodeSearch[0]
-                          menor = dist
-              node[5] = id
-              node[6] = menor
-
-          # Soma todas as Distâncias
-          total = 0
-          for node in formacaoCluster:
-              total += node[6]
+          
 
           # Registra as informações contruídas
           modelosCH.append([CH,formacaoCluster])
