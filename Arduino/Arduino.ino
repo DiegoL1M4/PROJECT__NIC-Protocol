@@ -1,7 +1,7 @@
 #include <math.h>
 
 void setup() {
-  Serial.begin(112000);
+  Serial.begin(115200);
 }
 
 void loop() {
@@ -31,8 +31,8 @@ void loop() {
                             {99, 16.61, 83.47, 0.0, 0, 0}};
   // Modelo do node: (0)ID / (1) X / (2) Y / (3) Distância / (4) Setor intra-cluster / (5) Já foi CH
   
-  float modelosCH[18][18][6];
-  float tamModelosCH[18];
+  float idCH[18];
+  double tamModelosCH[18];
   
   for(int H = 0; H < 18; H++) {
     float CH[6] = {nodesSetor[H][0], nodesSetor[H][1], nodesSetor[H][2], nodesSetor[H][3], nodesSetor[H][4], nodesSetor[H][5]};
@@ -40,17 +40,17 @@ void loop() {
 
     // Não calcula uma alternativa onde um node já foi CH
     if(CH[5] != 1) {
+      // Zera as informações para o próximo teste de CH
       for(int k = 0; k < 18; k++) {
-        for(int z = 0; z < 18; z++) {
-          modelosCH[H][k][z] = nodesSetor[k][z];
-        }
+        nodesSetor[k][3] = 0.0;
+        nodesSetor[k][4] = 0.0;
       }
 
       // Calcula as distâncias entre o CH e os outros
       float distanciasCH[18];
       for(int k = 0; k < 18; k++) {
         float distancia = sqrt( pow(CH[1]-nodesSetor[k][1], 2) + pow(CH[2]-nodesSetor[k][2], 2) );
-        modelosCH[H][k][3] = distancia;
+        nodesSetor[k][3] = distancia;
         distanciasCH[k] = distancia;
       }
       
@@ -70,27 +70,27 @@ void loop() {
       float valor = (maior - menor) / 8;
       
       for(int k = 0; k < 18; k++) {
-          if(modelosCH[H][k][3] <= menor + 1*valor)
-              modelosCH[H][k][4] = 1;
-          else if(modelosCH[H][k][3] <= menor + 2*valor)
-              modelosCH[H][k][4] = 2;
-          else if(modelosCH[H][k][3] <= menor + 3*valor)
-              modelosCH[H][k][4] = 3;
-          else if(modelosCH[H][k][3] <= menor + 4*valor)
-              modelosCH[H][k][4] = 4;
-          else if(modelosCH[H][k][3] <= menor + 5*valor)
-              modelosCH[H][k][4] = 5;
-          else if(modelosCH[H][k][3] <= menor + 6*valor)
-              modelosCH[H][k][4] = 6;
-          else if(modelosCH[H][k][3] <= menor + 7*valor)
-              modelosCH[H][k][4] = 7;
+          if(nodesSetor[k][3] <= menor + 1*valor)
+              nodesSetor[k][4] = 1;
+          else if(nodesSetor[k][3] <= menor + 2*valor)
+              nodesSetor[k][4] = 2;
+          else if(nodesSetor[k][3] <= menor + 3*valor)
+              nodesSetor[k][4] = 3;
+          else if(nodesSetor[k][3] <= menor + 4*valor)
+              nodesSetor[k][4] = 4;
+          else if(nodesSetor[k][3] <= menor + 5*valor)
+              nodesSetor[k][4] = 5;
+          else if(nodesSetor[k][3] <= menor + 6*valor)
+              nodesSetor[k][4] = 6;
+          else if(nodesSetor[k][3] <= menor + 7*valor)
+              nodesSetor[k][4] = 7;
           else
-              modelosCH[H][k][4] = 8;
+              nodesSetor[k][4] = 8;
       }
   
       // Escolhe um novo destino (multi-hop intra-cluster)
       for(int k = 0; k < 18; k++) {
-          float menor = modelosCH[H][k][3];
+          float menor = nodesSetor[k][3];
   
           for(int z = 0; z < 18; z++)
               if(nodesSetor[z][0] != nodesSetor[k][0]) {
@@ -98,20 +98,18 @@ void loop() {
                   if(dist < menor && nodesSetor[z][4] < nodesSetor[k][4])
                       menor = dist;
               }
-                      
-          modelosCH[H][k][3] = menor;
-
-          
-        //Serial.println(modelosCH[H][k][3]);delay(1000);
-          
+          nodesSetor[k][3] = menor;
       }
 
       
       // Soma o total das distâncias
-      float total = 0;
+      double total = 0;
       for(int k = 0; k < 18; k++) {
-        total += modelosCH[H][k][3];
+        total += nodesSetor[k][3];
       }
+
+      // Registro das Informações
+      idCH[H] = CH[0];
       tamModelosCH[H] = total;
 
       // Print de dados
@@ -123,11 +121,13 @@ void loop() {
   }
 
   // Ordena em um vetor as melhores formações (menores distancias no total)
-  for(int k = 0; k < 20; k++) {
+  for(int k = 0; k < 18; k++) {
     float menor = tamModelosCH[k];
-    for(int k = 0; k < 20; k++) {
+    float idPosicao = 0;
+    for(int k = 0; k < 18; k++) {
         if(tamModelosCH[k] < menor)
             menor = tamModelosCH[k];
+            idPosicao = k;
     }
   }
 
@@ -140,6 +140,6 @@ void loop() {
   Serial.print("Tempo de execução (milisegundos): ");
   Serial.println(tempoFim-tempoInit);
   Serial.println();
-  delay(10000);
+  delay(1000000);
 
 }
